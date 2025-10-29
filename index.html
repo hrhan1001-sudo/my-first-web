@@ -1,1 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMS Capability Evaluation Insight</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script>
+        // Fallback if Chart.js fails to load
+        if (typeof Chart === 'undefined') {
+            console.warn('Chart.js failed to load from CDN, loading from alternative source...');
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/chart.js@3.9.1/dist/chart.min.js';
+            script.onload = function() {
+                console.log('Chart.js loaded from fallback source');
+                // Re-initialize radar charts after Chart.js loads
+                if (typeof initializeOverviewRadarChart === 'function') {
+                    initializeOverviewRadarChart();
+                    initializeCombinedRadarChart();
+                    initializeProductSpecificRadarCharts();
+                }
+            };
+            script.onerror = function() {
+                console.error('Failed to load Chart.js from both CDN sources');
+                // Hide radar charts sections if Chart.js cannot be loaded
+                const overviewSection = document.querySelector('.overview-radar-section');
+                const combinedSection = document.querySelector('.combined-radar-section');
+                const productSection = document.querySelector('.product-specific-radar-section');
+                
+                [overviewSection, combinedSection, productSection].forEach(section => {
+                    if (section) {
+                        section.style.display = 'none';
+                        const errorMsg = document.createElement('div');
+                        errorMsg.innerHTML = '<p style="color: red; text-align: center; padding: 20px;">Radar charts unavailable - Chart.js library could not be loaded.</p>';
+                        section.parentNode.insertBefore(errorMsg, section);
+                    }
+                });
+            };
+            document.head.appendChild(script);
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>EMS Capability Evaluation Insight</h1>
+            <p class="subtitle">AMZ General VEM Level - Cut Off 2025/10/15</p>
+        </header>
+
+        <nav class="tab-navigation">
+            <button class="tab-btn active" data-tab="overview">Overview</button>
+            <button class="tab-btn" data-tab="main-table">Trends</button>
+            <button class="tab-btn" data-tab="summary">Summary</button>
+            <button class="tab-btn" data-tab="details">Technical Details</button>
+        </nav>
+
+        <main>
+            <!-- Overview Page -->
+            <div id="overview" class="tab-content active">
+                <!-- ULE Performance Overview Radar Chart -->
+                <div class="overview-radar-section">
+                    <h2>Product-Based Supplier Capability Overview</h2>
+                    
+                    
+                    <div class="overview-radar-container">
+                        <!-- Left sidebar: Chart Description -->
+                        <div class="overview-radar-description">
+                            <h4>Capability Bar Chart</h4>
+                            <p>Displays the top 2 performing suppliers for each product category, ranked by their capability scores based on VEM level assessments across technical functions. </p>
+                            
+                            <div class="scoring-formula">
+                                <h5>Scoring Formula (HC Savings):</h5>
+                                <div class="formula-details">
+                                    <div class="formula-item">
+                                        <span class="formula-label">ULE:</span>
+                                        <span class="formula-value">0.9 HC saved</span>
+                                    </div>
+                                    <div class="formula-item">
+                                        <span class="formula-label">L VEM:</span>
+                                        <span class="formula-value">0.8 HC saved</span>
+                                    </div>
+                                    <div class="formula-item">
+                                        <span class="formula-label">M VEM:</span>
+                                        <span class="formula-value">0.5 HC saved</span>
+                                    </div>
+                                    <div class="formula-item">
+                                        <span class="formula-label">H VEM:</span>
+                                        <span class="formula-value">0 HC saved</span>
+                                    </div>
+                                </div>
+                                <p class="formula-note">Scores represent Headcount (HC) savings. Higher scores indicate greater resource efficiency and reduced engagement requirements.</p>
+                            </div>
+                            
+                        </div>
+                        
+                        <!-- Center: Chart container (Bar Chart Only) -->
+                        <div class="overview-chart-container">
+                            <!-- Bar chart -->
+                            <div class="overview-bar-chart" id="barChartView">
+                                <canvas id="overviewBarChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Right side: Supplier Legend -->
+                        <div class="overview-radar-legend">
+                            <h4>Supplier Legend</h4>
+                            <p>Hover over legend items to highlight corresponding bars in the chart</p>
+                            <p>Each bar shows supplier name and score on the right side</p>
+                            <p>Click on product names to jump to Product Function Analysis</p>
+                            
+                            <div class="supplier-legend-items">
+                                <div class="supplier-legend-item" data-supplier="HQ DB1" onmouseenter="highlightSupplierBars('HQ DB1')" onmouseleave="resetBarHighlight()">
+                                    <span class="supplier-legend-color" style="background-color: rgba(138, 43, 226, 1);"></span>
+                                    <span class="supplier-legend-name">HQ DB1</span>
+                                </div>
+                                <div class="supplier-legend-item" data-supplier="HQ DB2" onmouseenter="highlightSupplierBars('HQ DB2')" onmouseleave="resetBarHighlight()">
+                                    <span class="supplier-legend-color" style="background-color: rgba(75, 0, 130, 1);"></span>
+                                    <span class="supplier-legend-name">HQ DB2</span>
+                                </div>
+                                <div class="supplier-legend-item" data-supplier="GTK" onmouseenter="highlightSupplierBars('GTK')" onmouseleave="resetBarHighlight()">
+                                    <span class="supplier-legend-color" style="background-color: rgba(255, 140, 0, 1);"></span>
+                                    <span class="supplier-legend-name">GTK</span>
+                                </div>
+                                <div class="supplier-legend-item" data-supplier="CNT" onmouseenter="highlightSupplierBars('CNT')" onmouseleave="resetBarHighlight()">
+                                    <span class="supplier-legend-color" style="background-color: rgba(30, 144, 255, 1);"></span>
+                                    <span class="supplier-legend-name">CNT</span>
+                                </div>
+                                <div class="supplier-legend-item" data-supplier="FIH" onmouseenter="highlightSupplierBars('FIH')" onmouseleave="resetBarHighlight()">
+                                    <span class="supplier-legend-color" style="background-color: rgba(220, 20, 60, 1);"></span>
+                                    <span class="supplier-legend-name">FIH</span>
+                                </div>
+                                <div class="supplier-legend-item" data-supplier="GGEC" onmouseenter="highlightSupplierBars('GGEC')" onmouseleave="resetBarHighlight()">
+                                    <span class="supplier-legend-color" style="background-color: rgba(34, 139, 34, 1);"></span>
+                                    <span class="supplier-legend-name">GGEC</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Function Analysis Section -->
+                <div class="product-specific-radar-section">
+                    <h2>Product Function Analysis</h2>
+                    <div class="product-selector-container">
+                        
+                        <div class="selector-wrapper">
+                            <label for="productSelector" class="product-selector-label">Select Product:</label>
+                            <select id="productSelector" class="product-selector">
+                                <option value="Remote">Remote</option>
+                                <option value="TV Sticker">TV Sticker</option>
+                                <option value="Echo W/ Display">Echo W/ Display</option>
+                                <option value="Echo W/O Display">Echo W/O Display</option>
+                                <option value="Wearable">Wearable</option>
+                                <option value="Hearable">Hearable</option>
+                                <option value="eReader">eReader</option>
+                                <option value="Tablet">Tablet</option>
+                            </select>
+                        </div>
+                        <p class="section-description">Select a product to view each supplier's capability scores across different technical functions. The radar charts show VEM level scores together with average scores.</p>
+                    </div>
+                    <div class="product-radar-container">
+                        <div class="product-radar-grid" id="productRadarGrid">
+                            <!-- Radar charts will be dynamically generated here -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Assessment Matrix Page -->
+            <div id="main-table" class="tab-content">
+                <!-- Combined Supplier Score Comparison Radar Chart Section -->
+                <div class="combined-radar-section">
+                    <div class="combined-radar-container">
+                        <h2>Supplier Score Comparison: 2024 vs 2025</h2>
+                        <div class="combined-radar-content">
+                            <div class="combined-radar-chart">
+                                <canvas id="combinedRadarChart"></canvas>
+                            </div>
+                            <div class="combined-radar-legend">
+                                <h4>Interactive Supplier Selection</h4>
+                                <p>Click on a supplier below to view their 2024 vs 2025 score comparison</p>
+                                <div class="combined-legend-items">
+                                    <div class="combined-legend-item">
+                                        <span class="combined-legend-color" style="background-color: rgba(138, 43, 226, 1);"></span>
+                                        <span>HQ DB1</span>
+                                    </div>
+                                    <div class="combined-legend-item">
+                                        <span class="combined-legend-color" style="background-color: rgba(75, 0, 130, 1);"></span>
+                                        <span>HQ DB2</span>
+                                    </div>
+                                    <div class="combined-legend-item">
+                                        <span class="combined-legend-color" style="background-color: rgba(255, 140, 0, 1);"></span>
+                                        <span>GTK</span>
+                                    </div>
+                                    <div class="combined-legend-item">
+                                        <span class="combined-legend-color" style="background-color: rgba(30, 144, 255, 1);"></span>
+                                        <span>CNT</span>
+                                    </div>
+                                    <div class="combined-legend-item">
+                                        <span class="combined-legend-color" style="background-color: rgba(220, 20, 60, 1);"></span>
+                                        <span>FIH</span>
+                                    </div>
+                                    <div class="combined-legend-item">
+                                        <span class="combined-legend-color" style="background-color: rgba(34, 139, 34, 1);"></span>
+                                        <span>GGEC</span>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 15px; padding: 15px; background: white; border-radius: 8px;">
+                                    <h5 style="color: #667eea; margin-bottom: 10px; font-size: 1rem;">Chart Information:</h5>
+                                    <p style="font-size: 0.85rem; color: #666; line-height: 1.4;">
+                                        Shows 2024 (dashed line) vs 2025 (solid line) scores for the selected supplier across 8 technical domains.<br>
+                                        <em>Scores are based on the overview page scoring rules: ULE(100), L VEM(80), M VEM(60), H VEM(20)</em>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Assessment Matrix Section -->
+                <div class="matrix-section">
+                    <div class="table-container">
+                        <h2>Supplier Technical Capability Assessment Matrix</h2>
+                        <div class="table-wrapper">
+                            <table id="assessment-table" class="assessment-table">
+                                <thead>
+                                    <tr class="header-row-1">
+                                        <th rowspan="3">Category</th>
+                                        <th rowspan="3">Product</th>
+                                        <th colspan="8">HQ DB2</th>
+                                        <th colspan="8">HQ DB1</th>
+                                        <th colspan="8">GTK</th>
+                                        <th colspan="8">CNT</th>
+                                        <th colspan="8">FIH</th>
+                                        <th colspan="8">GGEC</th>
+                                    </tr>
+                                    <tr class="header-row-2">
+                                        <th>Audio HW</th>
+                                        <th>Audio SW</th>
+                                        <th>Camera</th>
+                                        <th>DOT</th>
+                                        <th>Sensor</th>
+                                        <th>Wireless</th>
+                                        <th>Production Test</th>
+                                        <th>SW Infra</th>
+                                        <th>Audio HW</th>
+                                        <th>Audio SW</th>
+                                        <th>Camera</th>
+                                        <th>DOT</th>
+                                        <th>Sensor</th>
+                                        <th>Wireless</th>
+                                        <th>Production Test</th>
+                                        <th>SW Infra</th>
+                                        <th>Audio HW</th>
+                                        <th>Audio SW</th>
+                                        <th>Camera</th>
+                                        <th>DOT</th>
+                                        <th>Sensor</th>
+                                        <th>Wireless</th>
+                                        <th>Production Test</th>
+                                        <th>SW Infra</th>
+                                        <th>Audio HW</th>
+                                        <th>Audio SW</th>
+                                        <th>Camera</th>
+                                        <th>DOT</th>
+                                        <th>Sensor</th>
+                                        <th>Wireless</th>
+                                        <th>Production Test</th>
+                                        <th>SW Infra</th>
+                                        <th>Audio HW</th>
+                                        <th>Audio SW</th>
+                                        <th>Camera</th>
+                                        <th>DOT</th>
+                                        <th>Sensor</th>
+                                        <th>Wireless</th>
+                                        <th>Production Test</th>
+                                        <th>SW Infra</th>
+                                        <th>Audio HW</th>
+                                        <th>Audio SW</th>
+                                        <th>Camera</th>
+                                        <th>DOT</th>
+                                        <th>Sensor</th>
+                                        <th>Wireless</th>
+                                        <th>Production Test</th>
+                                        <th>SW Infra</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="assessment-tbody">
+                                    <!-- 数据将通过JavaScript动态生成 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Page -->
+            <div id="summary" class="tab-content">
+                <div class="summary-container">
+                    <!-- <h2>Evaluation Result & Gap Improvement</h2> -->
+                    
+                    <!-- Supplier Navigation Tabs -->
+                    <div class="supplier-tabs">
+                        <button class="supplier-tab-btn active" data-supplier="HQ-DB1">HQ-DB1</button>
+                        <button class="supplier-tab-btn" data-supplier="HQ-DB2">HQ-DB2</button>
+                        <button class="supplier-tab-btn" data-supplier="GTK">GTK</button>
+                        <button class="supplier-tab-btn" data-supplier="CNT">CNT</button>
+                        <button class="supplier-tab-btn" data-supplier="FIH-General">FIH-General</button>
+                        <button class="supplier-tab-btn" data-supplier="FIH-Seabright">FIH-Seabright</button>
+                        <button class="supplier-tab-btn" data-supplier="GGEC">GGEC</button>
+                    </div>
+
+                    <!-- HQ-DB1 Summary (Hearable Category) -->
+                    <div id="supplier-HQ-DB1" class="supplier-summary active">
+                        <div class="summary-card">
+                            <div class="summary-header">
+                                <h3>HQ-DB1 (Category: Hearable)</h3>
+                                <div class="risk-level high">High Risk Level</div>
+                            </div>
+                            
+                            <div class="summary-content">
+                                <h4>Evaluation Result:</h4>
+                                <p>HQ-DB1 does not qualify as <strong>an ULE partner</strong> for four critical reasons:</p>
+                                <ol>
+                                    <li>Sensor testing fixtures are mostly manual operating, bench automation and fixture spec can be observed as a gap to Amazon standard</li>
+                                    <li>New sensors like mid-IR proximity sensor with skin detection function and BIO sensors need further study to support</li>
+                                    <li>Lack of wireless systematic risk evaluation</li>
+                                    <li>No experience to do correlation on ARF-OTA performance for running effectively FA on antenna/ARF issue during NPI</li>
+                                </ol>
+
+                                <h4>ULE Mitigation Plan:</h4>
+                                <div class="mitigation-plan">
+                                    <div class="plan-section">
+                                        <h5>ULE Design Playbook</h5>
+                                        <ul>
+                                            <li>Establish a playbook mechanism and conduct daily design review sessions with key stakeholders before EVT RR to ensure all technical requirements and specifications are met.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <h4>Suggestion:</h4>
+                                <p>JDM (M VEM) before EVT RR</p>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- HQ-DB2 Summary (General Category) -->
+                    <div id="supplier-HQ-DB2" class="supplier-summary">
+                        <div class="summary-card">
+                            <div class="summary-header">
+                                <h3>HQ-DB2 (Category: General)</h3>
+                                <div class="risk-level mid">Mid Risk Level</div>
+                            </div>
+                            
+                            <div class="summary-content">
+                                
+                                <h4>Evaluation Result:</h4>
+                                <p>HQ-DB2 is <strong>an ULE partner</strong> for Echo, eReader, and Tablet products. However, they must provide a robust solution to ensure compliance with BRD standards during their transition to HW Specifications. Additionally, HQ-DB2 needs to implement preventive measures to avoid similar compliance issues in future projects.</p>
+
+                                <h4>ULE Mitigation Plan:</h4>
+                                <div class="mitigation-plan">
+                                    <div class="plan-section">
+                                        <h5>ULE Design Playbook</h5>
+                                        <ul>
+                                            <li>Amazon connectivity design team can develop a ULE playbook and scheduled design reviews before the EVT RR.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <h4>Suggestion:</h4>
+                                <p>JDM (L VEM) before EVT RR</p>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GTK Summary -->
+                    <div id="supplier-GTK" class="supplier-summary">
+                        <div class="summary-card">
+                            <div class="summary-header">
+                                <h3>GTK (Category: General)</h3>
+                                <div class="risk-level high">High Risk Level</div>
+                            </div>
+                            
+                            <div class="summary-content">
+                                
+                                <h4>Evaluation Result:</h4>
+                                <p>GTK does not qualify <strong>as an ULE partner</strong> for six critical reasons:</p>
+                                <ol>
+                                    <li>Camera does not have IQ advanced feature tuning, subjective & objective tuning, and AIISP tuning methodand</li>
+                                    <li>Current labs are not sufficient to support MTK/Qualcomm ISP tuning, no DNP light source, and the camera labs are not qualified by Amazon yet</li>
+                                    <li>Sensor is missing Accel test bench, P-Sensor Test bench, and TOF Test bench Develop</li>
+                                    <li>GTK wireless design and production capability could not offload NTI loading, such as radar, A2S, and simulation requirements</li>
+                                    <li>No experience on Complex issue Troubleshooting Capability improvement-De-sense</li>
+                                    <li>No DOT qualified Sr. engineers and No pDOT design, testing, and validation experience</li>
+                                </ol>
+
+                                <h4>ULE Mitigation Plan:</h4>
+                                <div class="mitigation-plan">
+                                    <div class="plan-section">
+                                        <h5>ULE Design Playbook</h5>
+                                        <ul>
+                                            <!-- <li>Establish a playbook mechanism and conduct daily design review sessions with key stakeholders before EVT RR to ensure all technical requirements and specifications are met.</li> -->
+                                            <li>Establish a standardized Hardware (HW) specification mechanism and begin implementation with the JDM to ensure alignment on technical requirements and quality standards.</li>
+                                            <li>For Eacho Core and Entry Vnext, we developed a ULE playbook and scheduled design reviews before the EVT RR</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <h4>Suggestion:</h4>
+                                <p>JDM (M VEM) before EVT RR</p>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CNT Summary -->
+                    <div id="supplier-CNT" class="supplier-summary">
+                        <div class="summary-card">
+                            <div class="summary-header">
+                                <h3>CNT (Category: General)</h3>
+                                <div class="risk-level mid">Mid Risk Level</div>
+                            </div>
+                            
+                            <div class="summary-content">
+                                
+                                <h4>Evaluation Result:</h4>
+                                <p>CNT, with over 10 years of experience working with Amazon on OEM business models, specializes in SMP-TV Stick projects. To support CNT's transition to <strong>an independent ULE model</strong> for the SMP-TV Stick, Amazon connectivity design team has developed a ULE playbook and scheduled design reviews before the EVT RR. Based on this preparation, CNT has been awarded the Mercer project (next generation TV stick) <strong>under the ULE model</strong>.</p>
+
+                                <h4>ULE Mitigation Plan:</h4>
+                                <div class="mitigation-plan">
+                                    <div class="plan-section">
+                                        <h5>ULE Design Playbook</h5>
+                                        <ul>
+                                            <li>Amazon connectivity design team can develop a ULE playbook and scheduled design reviews before the EVT RR.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <h4>Suggestion:</h4>
+                                <p>JDM (L VEM) before EVT RR</p>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FIH-General Summary -->
+                    <div id="supplier-FIH-General" class="supplier-summary">
+                        <div class="summary-card">
+                            <div class="summary-header">
+                                <h3>FIH (Category: General)</h3>
+                                <div class="risk-level high">High Risk Level</div>
+                            </div>
+                            
+                            <div class="summary-content">
+                                
+                                <h4>Evaluation Result:</h4>
+                                <p>FIH-General does not qualify as <strong>an ULE partner</strong> for three critical reasons:</p>
+                                <ol>
+                                    <li>No qualified team involvement in Brioche project design</li>
+                                    <li>Laboratory infrastructure not established prior to Brioche engagement</li>
+                                    <li>Recently hired senior engineers lack Amazon DRIs validation</li>
+                                </ol>
+
+                                <h4>ULE Mitigation Plan:</h4>
+                                <div class="mitigation-plan">
+                                    <h5>ULE Design Playbook</h5>
+                                    <div class="plan-section">
+                                        <h5>1. Validation Level Adjustment</h5>
+                                        <ul>
+                                            <li>Increase Amazon VEM requirement to Mid/High</li>
+                                            <li>Leverage Amazon R&D resources for schedule adherence</li>
+                                        </ul>
+                                    </div>
+                                    <div class="plan-section">
+                                        <h5>2. Laboratory Resource Optimization</h5>
+                                        <ul>
+                                            <li>Utilize existing Amazon laboratory facilities</li>
+                                            <li>Require EMS to reduce device MVA</li>
+                                            <li>Eliminate delays from EMS lab setup</li>
+                                        </ul>
+                                    </div>
+                                    <div class="plan-section">
+                                        <h5>3. Engineering Qualification Process</h5>
+                                        <ul>
+                                            <li>Verify device simulation expertise of EMS senior engineers</li>
+                                            <li>Complete Amazon DRI qualification before RFQ release</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <h4>OEM-to-ULE Conversion Plan:</h4>
+                                <div class="conversion-plan">
+                                    <div class="timeline-item">
+                                        <strong>By December 31, 2025:</strong>
+                                        <ul>
+                                            <li>EMS laboratory must complete setup</li>
+                                            <li>All Sr. engineers must secure capability validation from Amazon DRIs</li>
+                                        </ul>
+                                    </div>
+                                    <div class="timeline-item">
+                                        <strong>By February 26, 2026:</strong>
+                                        <ul>
+                                            <li>Obtain Amazon laboratory certification</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <h4>Suggestion:</h4>
+                                <p>OEM</p>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FIH-Seabright Summary -->
+                    <div id="supplier-FIH-Seabright" class="supplier-summary">
+                        <div class="summary-card">
+                            <div class="summary-header">
+                                <h3>FIH (Category: Seabright and Stinson)</h3>
+                                <div class="risk-level high">High Risk Level</div>
+                            </div>
+                            
+                            <div class="summary-content">
+                                
+                                <h4>Evaluation Result:</h4>
+                                <p>FIH-Seabright and Stinson do not qualify <strong>as an ULE partner</strong> for four critical reasons:</p>
+                                <ol>
+                                    <li>High engagement for camera since it has V0 features (night mode)</li>
+                                    <li>Sensor needs re-architect RGB sensor (inferencing with camera night mode IR LED as well) and supports omnisense</li>
+                                    <li>Wireless has new WiFi radar feature (2T|1R) and use new WiFi Chip IC 7903</li>
+                                    <li>No ability to develop Production HW (Chamber) and SW (WFT) </li>
+                                </ol>
+
+                                <h4>ULE Mitigation Plan:</h4>
+                                <div class="mitigation-plan">
+                                    <div class="plan-section">
+                                        <h5>Hardware specification mechanism</h5>
+                                        <ul>
+                                            <li>Establish a standardized Hardware (HW) specification mechanism and begin implementation with the JDM to ensure alignment on technical requirements and quality standards.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <h4>Suggestion:</h4>
+                                <p>OEM</p>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GGEC Summary -->
+                    <div id="supplier-GGEC" class="supplier-summary">
+                        <div class="summary-card">
+                            <div class="summary-header">
+                                <h3>GGEC (Category: Hearable)</h3>
+                                <div class="risk-level high">High Risk Level</div>
+                            </div>
+                            
+                            <div class="summary-content">
+                                
+                                <h4>Evaluation Result:</h4>
+                                <p>GGEC does not qualify as <strong>an ULE partner</strong> for eight critical reasons:</p>
+                                <ol>
+                                    <li>Sensor has gap in function characterization, device bench testing fixtures, manual or automatic</li>
+                                    <li>GGEC will need AMZ team's support to build sensor lab and related capability</li>
+                                    <li>New sensors like mid-IR proximity sensor with skin detection function and BIO sensors need further study to support</li>
+                                    <li>Lack of wireless systematic risk evaluation</li>
+                                    <li>Minimal SAR testing experience and Not familiar with FCC/CE SAR test waiver conditions for TWS</li>
+                                    <li>No expereience to do corerlation on ARF-OTA performance for running effectively FA on antenna/ARF issue during NPI</li>
+                                    <li>No dedicated sensor validation capabilities, desense validation(Spectrum capture), and cross body effect validation</li>
+                                    <li>Not familiar with Amazon production testing requirement</li>
+                                </ol>
+
+                                <h4>ULE Mitigation Plan:</h4>
+                                <div class="mitigation-plan">
+                                    <div class="plan-section">
+                                        <h5>Hardware specification mechanism</h5>
+                                        <ul>
+                                            <li>Establish a standardized Hardware (HW) specification mechanism and begin implementation with the JDM to ensure alignment on technical requirements and quality standards.</li>
+                                        </ul>
+                                    </div>
+                                    
+                                </div>
+
+                                <h4>Suggestion:</h4>
+                                <p>JDM (M VEM)</p>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Technical Details Page -->
+            <div id="details" class="tab-content">
+                <div class="details-container">
+                    <h2>Technical Domain Detailed Information</h2>
+                    <div class="details-grid">
+                        <div class="detail-card">
+                            <div class="domain-header">
+                                <h3>Audio SW Domain</h3>
+                                <div class="domain-meta">
+                                    <span class="audit-date">Audit Date: HQ DB1 10/10/2025, GGEC 10/14/2025</span>
+                                    <span class="audit-focus">Focus: Capability in hearable audio</span>
+                                </div>
+                            </div>
+                            
+                            <div class="detail-content">
+                                <div class="supplier-assessment">
+                                    <div class="assessment-header">
+                                        <h4>HQ DB1 Assessment</h4>
+                                        <div class="score-badge score-low">Score: 2.91/5</div>
+                                    </div>
+                                    
+                                    <div class="assessment-section">
+                                        <div class="section-title strengths-title">
+                                            <span class="section-icon">✓</span>
+                                            <strong>Strengths</strong>
+                                        </div>
+                                        <ul class="assessment-list strengths-list">
+                                            <li>Anechoic chamber owned by the BU, can share labs from other BUs</li>
+                                            <li>All required equipment available (HATS, ACQUA, 3QUEST, Soundcheck, AudioPrecision)</li>
+                                            <li>Experience in all kinds of earbuds and wearable products</li>
+                                            <li>Experience in tuning ANC, EQ algorithms</li>
+                                            <li>Experience in major earbuds solutions</li>
+                                            <li>Following same procedure as other BUs working with Amazon</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div class="assessment-section">
+                                        <div class="section-title weaknesses-title">
+                                            <span class="section-icon">⚠</span>
+                                            <strong>Weaknesses</strong>
+                                        </div>
+                                        <ul class="assessment-list weaknesses-list">
+                                            <li>No ETSI room nor Listening room</li>
+                                            <li>Lack of ASR experiences</li>
+                                            <li>Limited experience in ASR (Subjective only) and VoIP</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div class="supplier-assessment">
+                                    <div class="assessment-header">
+                                        <h4>GGEC Assessment</h4>
+                                        <div class="score-badge score-low">Score: 2.95/5</div>
+                                    </div>
+                                    
+                                    <div class="assessment-section">
+                                        <div class="section-title strengths-title">
+                                            <span class="section-icon">✓</span>
+                                            <strong>Strengths</strong>
+                                        </div>
+                                        <ul class="assessment-list strengths-list">
+                                            <li>Certified chamber following multiple international standards</li>
+                                            <li>Extensive experiences in ANC, ENC tuning and algorithm design</li>
+                                            <li>In-house playback algorithm (GSound)</li>
+                                            <li>Strong tuning capability in adaptive ANC ENC and EQ algorithms</li>
+                                            <li>Cross productline software stack experience</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div class="assessment-section">
+                                        <div class="section-title weaknesses-title">
+                                            <span class="section-icon">⚠</span>
+                                            <strong>Weaknesses</strong>
+                                        </div>
+                                        <ul class="assessment-list weaknesses-list">
+                                            <li>No ETSI room nor Listening room</li>
+                                            <li>No ACQUA nor 3QUEST equipment</li>
+                                            <li>No more than two dedicated audio software engineers</li>
+                                            <li>Lack of ASR VoIP experiences</li>
+                                            <li>Does not follow well defined PDP procedure in software dev/release</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="detail-card">
+                            <div class="domain-header">
+                                <h3>Sensor Domain</h3>
+                                <div class="domain-meta">
+                                    <span class="audit-date">Update Date: 2025/9/25</span>
+                                </div>
+                            </div>
+                            
+                            <div class="detail-content">
+                                <div class="general-assessment">
+                                    <div class="section-title general-title">
+                                        <span class="section-icon">📊</span>
+                                        <strong>General Assessment</strong>
+                                    </div>
+                                    <ul class="assessment-list general-list">
+                                        <li>Wearable products are High engagement for all EMS due to complexity</li>
+                                        <li><strong>HQ:</strong> Tablet is already ULE in sensor domain</li>
+                                        <li><strong>GTK:</strong> Turn eReader and Tablet to Mid as they have never touched those models</li>
+                                        <li><strong>CNT:</strong> Lacks sensor characterization equipment and Amazon sensor program experience</li>
+                                        <li><strong>FIH:</strong> Tablet is Mid as they have never been awarded a tablet program</li>
+                                    </ul>
+                                </div>
+
+                                <div class="supplier-assessment">
+                                    <div class="assessment-header">
+                                        <h4>HQ DB1 Assessment</h4>
+                                        <div class="assessment-date">2025-10-10</div>
+                                    </div>
+                                    
+                                    <div class="assessment-section">
+                                        <div class="section-title capabilities-title">
+                                            <span class="section-icon">✓</span>
+                                            <strong>Capabilities</strong>
+                                        </div>
+                                        <ul class="assessment-list capabilities-list">
+                                            <li>Familiar with common sensors in TWS products (hall, capacitive, IR proximity, IMU, resistive pressure)</li>
+                                            <li>EE design team capable of chip selection, architecture design, sensor system level simulation</li>
+                                            <li>Experience in sensor SMT/FATP testing support, calibration, tuning, FA and device bench testing</li>
+                                            <li>Lab fixtures and process cover sensor testing requirements and OBA testing</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div class="assessment-section">
+                                        <div class="section-title gaps-title">
+                                            <span class="section-icon">⚠</span>
+                                            <strong>Gaps</strong>
+                                        </div>
+                                        <ul class="assessment-list gaps-list">
+                                            <li>Gap in algorithm development and evaluation</li>
+                                            <li>Sensor testing fixtures mostly manual operating</li>
+                                            <li>Bench automation and fixture spec gaps to Amazon standard</li>
+                                            <li>New sensors (mid-IR proximity with skin detection, BIO sensors) need further study</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div class="supplier-assessment">
+                                    <div class="assessment-header">
+                                        <h4>GGEC Assessment</h4>
+                                        <div class="assessment-date">2025-10-14</div>
+                                    </div>
+                                    
+                                    <div class="assessment-section">
+                                        <div class="section-title capabilities-title">
+                                            <span class="section-icon">✓</span>
+                                            <strong>Capabilities</strong>
+                                        </div>
+                                        <ul class="assessment-list capabilities-list">
+                                            <li>EE HW design team familiar with common TWS sensors</li>
+                                            <li>Capable of chip selection, architecture design, sensor system level simulation</li>
+                                            <li>Demonstrated in-house and 3rd party algorithm development capability</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div class="assessment-section">
+                                        <div class="section-title gaps-title">
+                                            <span class="section-icon">⚠</span>
+                                            <strong>Gaps</strong>
+                                        </div>
+                                        <ul class="assessment-list gaps-list">
+                                            <li>Gap in sensor function characterization and device bench testing fixtures</li>
+                                            <li>Need Amazon team support to build sensor lab and related capability</li>
+                                            <li>New sensors (mid-IR proximity with skin detection, BIO sensors) need further study</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div class="remark-section">
+                                    <div class="section-title remark-title">
+                                        <span class="section-icon">💡</span>
+                                        <strong>Remark</strong>
+                                    </div>
+                                    <p class="remark-text">VEM depends on system requirements case by case. Complex sensor stacks may change VEM from Low to Mid/High.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="detail-card">
+                            <div class="domain-header">
+                                <h3>Wireless Domain</h3>
+                            </div>
+                            
+                            <div class="detail-content">
+                                <div class="supplier-assessment">
+                                    <div class="assessment-header">
+                                        <h4>HQ DB1 Assessment</h4>
+                                    </div>
+                                    
+                                    <div class="assessment-section">
+                                        <div class="section-title risks-title">
+                                            <span class="section-icon">🚨</span>
+                                            <strong>Antenna Design Risks</strong>
+                                        </div>
+                                        <ol class="assessment-list risks-list">
+                                            <li>Antenna design analysis and simulation falling short of Amazon expectations</li>
+                                            <li>No experience evaluating worst case scenarios (human cross body impact, component variations)</li>
+                                            <li>Only used CST default head model, not aligned with P10 model standard</li>
+                                            <li>No human cross body simulation and validation capability</li>
+                                            <li>No CTIA standard antenna OTA chamber in factory/lab (sharing Mini/Micro chambers with BD2)</li>
+                                            <li>No significant experience in ARF-OTA performance correlation for effective FA during NPI</li>
+                                        </ol>
+                                    </div>
+
+                                    <div class="assessment-section">
+                                        <div class="section-title issues-title">
+                                            <span class="section-icon">⚠</span>
+                                            <strong>RF System & Desense Issues</strong>
+                                        </div>
+                                        <ol class="assessment-list issues-list">
+                                            <li>HQ DB1 team not familiar with Amazon RF&Desense design PDP</li>
+                                            <li>Desense simulation capability rarely used for risk evaluation</li>
+                                            <li>Desense risk assessment relies on experience, lacks systematic evaluation</li>
+                                            <li>No consideration of antenna detune risk in ARF station factory testing</li>
+                                        </ol>
+                                    </div>
+                                </div>
+
+                                <div class="supplier-assessment">
+                                    <div class="assessment-header">
+                                        <h4>GGEC Assessment</h4>
+                                    </div>
+                                    
+                                    <div class="assessment-section">
+                                        <div class="section-title risks-title high-risk">
+                                            <span class="section-icon">🚨</span>
+                                            <strong>Antenna Design Risks</strong>
+                                            <span class="tech-risk-badge very-high">Very High Risk</span>
+                                        </div>
+                                        <ol class="assessment-list risks-list">
+                                            <li>Lacks experience in worst-case scenario evaluation</li>
+                                            <li>P10 head model parameters not aligned with standard (using default CST settings)</li>
+                                            <li>No human cross-body simulation and validation capabilities</li>
+                                            <li>Limited ARF spec window setting experience and antenna performance correlation</li>
+                                            <li>Minimal SAR testing experience, unfamiliar with FCC/CE SAR test waiver conditions for TWS</li>
+                                            <li>Insufficient ARF-OTA performance correlation experience for NPI FA</li>
+                                            <li>Unable to develop solid high-level validation schedule from Amazon wireless HW specs</li>
+                                            <li>Only one MVG SG24 OTA Chamber in R&D lab, lacks factory-based OTA chambers</li>
+                                            <li>Insufficient knowledge of 3D-printed mockup materials (SLA, PLA, PTEG, PC, ABS)</li>
+                                        </ol>
+                                    </div>
+
+                                    <div class="assessment-section">
+                                        <div class="section-title issues-title">
+                                            <span class="section-icon">⚠</span>
+                                            <strong>RF System & Desense Issues</strong>
+                                        </div>
+                                        <ol class="assessment-list issues-list">
+                                            <li>Poor CSE/RSE design and failure analysis capability</li>
+                                            <li>No ZigBee signaling equipment and power table experience</li>
+                                            <li>Poor desense validation capability, not following Amazon standards</li>
+                                            <li>Poor coex design capability (best performance: 25dB isolation between 2.4GHz and ZigBee)</li>
+                                            <li>Poor systematic desense design capability</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="detail-card">
+                            <div class="domain-header">
+                                <h3>Validation Domain</h3>
+                            </div>
+                            
+                            <div class="detail-content">
+                                <div class="supplier-assessment">
+                                    <div class="assessment-header">
+                                        <h4>GGEC Assessment</h4>
+                                        <div class="overall-risk-badge medium-high">Overall Risk: Medium to High</div>
+                                    </div>
+                                    
+                                    <div class="validation-category">
+                                        <div class="category-header medium-risk">
+                                            <span class="section-icon">📡</span>
+                                            <strong>Wireless Validation</strong>
+                                            <span class="tech-risk-badge medium">Medium Risk</span>
+                                        </div>
+                                        <div class="category-content">
+                                            <div class="sub-section">
+                                                <div class="sub-title capabilities-sub">
+                                                    <span class="sub-icon">✓</span>
+                                                    <strong>Capabilities:</strong>
+                                                </div>
+                                                <p class="sub-content">Basic validation facilities (OTA chamber, shielding room, required instruments)</p>
+                                            </div>
+                                            <div class="sub-section">
+                                                <div class="sub-title test-plans-sub">
+                                                    <span class="sub-icon">📋</span>
+                                                    <strong>Test Plans:</strong>
+                                                </div>
+                                                <p class="sub-content">OTA, antenna performance, conducted testing for RF basic performance and pre-compliance</p>
+                                            </div>
+                                            <div class="sub-section">
+                                                <div class="sub-title issues-sub">
+                                                    <span class="sub-icon">⚠</span>
+                                                    <strong>Issues:</strong>
+                                                </div>
+                                                <p class="sub-content">Test limits problematic (conducted spurious emission limit only -40dBm/MHz, likely causing radiated compliance failure)</p>
+                                            </div>
+                                            <div class="sub-section">
+                                                <div class="sub-title gaps-sub">
+                                                    <span class="sub-icon">❌</span>
+                                                    <strong>Gaps:</strong>
+                                                </div>
+                                                <p class="sub-content">No dedicated desense test station, no validation plan for wearable devices, no cross body analysis capability</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="validation-category">
+                                        <div class="category-header high-risk">
+                                            <span class="section-icon">🔍</span>
+                                            <strong>Sensor Validation</strong>
+                                            <span class="tech-risk-badge high">High Risk</span>
+                                        </div>
+                                        <div class="category-content">
+                                            <ul class="assessment-list high-risk-list">
+                                                <li>No dedicated sensor validation capabilities</li>
+                                                <li>No dedicated sensor engineer for validation</li>
+                                                <li>No validation setup or plan for various sensors</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <div class="validation-category">
+                                        <div class="category-header low-risk">
+                                            <span class="section-icon">🎵</span>
+                                            <strong>Audio Validation</strong>
+                                            <span class="tech-risk-badge low">Low Risk</span>
+                                        </div>
+                                        <div class="category-content">
+                                            <ul class="assessment-list low-risk-list">
+                                                <li>GGEC has almost all required equipment for HW validation</li>
+                                                <li>Refer to Audio SW assessment for detailed capabilities</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <div class="validation-category">
+                                        <div class="category-header general">
+                                            <span class="section-icon">⚡</span>
+                                            <strong>Other EE Validation</strong>
+                                        </div>
+                                        <div class="category-content">
+                                            <ul class="assessment-list general-list">
+                                                <li><strong>Available:</strong> Basic EE validation facilities</li>
+                                                <li><strong>Capabilities:</strong> PI/PDN/SI/Ripple simulation and measurement</li>
+                                                <li><strong>Need evaluation:</strong> Sophisticated layout and PCB stackup planning integration capability</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="detail-card">
+                            <div class="domain-header">
+                                <h3>Production Test Domain</h3>
+                                <div class="domain-meta">
+                                    <span class="audit-date">Assessment Date: 2025/10/10 (HQ), 2025/10/14 (GGEC)</span>
+                                </div>
+                            </div>
+                            
+                            <div class="detail-content">
+                                <div class="scores-summary">
+                                    <div class="section-title summary-title">
+                                        <span class="section-icon">📊</span>
+                                        <strong>Supplier Scores Summary</strong>
+                                    </div>
+                                    <div class="scores-table-container">
+                                        <table class="scores-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Supplier</th>
+                                                    <th>Score</th>
+                                                    <th>Engagement Level</th>
+                                                    <th>HC Needed</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td><strong>HQ</strong></td>
+                                                    <td><span class="score-value good">88</span></td>
+                                                    <td><span class="engagement-badge low">Low Engagement</span></td>
+                                                    <td>0.2</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>GTK</strong></td>
+                                                    <td><span class="score-value good">88</span></td>
+                                                    <td><span class="engagement-badge low">Low Engagement</span></td>
+                                                    <td>0.2</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>CNT</strong></td>
+                                                    <td><span class="score-value good">88</span></td>
+                                                    <td><span class="engagement-badge low">Low Engagement</span></td>
+                                                    <td>0.2</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Ensky (FIH)</strong></td>
+                                                    <td><span class="score-value good">88</span></td>
+                                                    <td><span class="engagement-badge low">Low Engagement</span></td>
+                                                    <td>0.2</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>GGEC</strong></td>
+                                                    <td><span class="score-value medium">81</span></td>
+                                                    <td><span class="engagement-badge medium">Medium Engagement</span></td>
+                                                    <td>0.5</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div class="supplier-assessment">
+                                    <div class="assessment-header">
+                                        <h4>HQ-DB1 Detailed Assessment</h4>
+                                        <div class="assessment-meta">
+                                            <span class="region-info">Region: Nanchang</span>
+                                            <span class="score-badge score-good">Score: 88/100</span>
+                                            <span class="evaluator-info">Evaluator: hanry@amazon.com</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="assessment-section">
+                                        <div class="section-title strengths-title">
+                                            <span class="section-icon">✓</span>
+                                            <strong>Strengths</strong>
+                                        </div>
+                                        <ul class="assessment-list strengths-list">
+                                            <li>Experience in comprehensive device testing for large-scale manufacturing</li>
+                                            <li>Proficient in implementing Presto testing systems in production environments</li>
+                                            <li>Expertise in standardized quality control procedures</li>
+                                            <li>Efficient engineering resource management for testing operations</li>
+                                            <li>Perfect scores in Equipment, Human Resource, Maintenance, Automation, and Failure Analysis (100%)</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div class="assessment-section">
+                                        <div class="section-title weaknesses-title">
+                                            <span class="section-icon">⚠</span>
+                                            <strong>Weaknesses</strong>
+                                        </div>
+                                        <ul class="assessment-list weaknesses-list">
+                                            <li>Limited ARF chamber capabilities prevent comprehensive design validation during NPI</li>
+                                            <li>Experience category scored only 52% due to fixture design capability gaps</li>
+                                            <li>Need collaboration with Lab126 Production Engineering team for holder design optimization</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div class="supplier-assessment">
+                                    <div class="assessment-header">
+                                        <h4>GGEC Detailed Assessment</h4>
+                                        <div class="assessment-meta">
+                                            <span class="region-info">Region: GuangZhou</span>
+                                            <span class="score-badge score-medium">Score: 81/100</span>
+                                            <span class="evaluator-info">Evaluator: hanry@amazon.com</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="assessment-section">
+                                        <div class="section-title strengths-title">
+                                            <span class="section-icon">✓</span>
+                                            <strong>Strengths</strong>
+                                        </div>
+                                        <ul class="assessment-list strengths-list">
+                                            <li>Experience in comprehensive device testing for large-scale manufacturing</li>
+                                            <li>Proficient in operating RF equipment for troubleshooting and annual calibration</li>
+                                            <li>Expertise in standardized quality control procedures</li>
+                                            <li>Perfect scores in Equipment, Human Resource, Maintenance, Automation, and Failure Analysis (100%)</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div class="assessment-section">
+                                        <div class="section-title weaknesses-title">
+                                            <span class="section-icon">⚠</span>
+                                            <strong>Weaknesses</strong>
+                                        </div>
+                                        <ul class="assessment-list weaknesses-list">
+                                            <li>Lack of ARF chamber design capabilities prevent comprehensive design validation during NPI</li>
+                                            <li>Experience category scored only 36% due to significant fixture design capability gaps</li>
+                                            <li>Need collaboration with Lab126 Production Engineering team for holder design and antenna placement optimization</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div class="score-definition">
+                                    <div class="section-title definition-title">
+                                        <span class="section-icon">📋</span>
+                                        <strong>Score Definition</strong>
+                                    </div>
+                                    <ul class="definition-list">
+                                        <li><span class="score-range ule">95-100:</span> Ultra Low Engagement (ULE)</li>
+                                        <li><span class="score-range le">86-95:</span> Low Engagement (LE)</li>
+                                        <li><span class="score-range me">76-85:</span> Mid Engagement (ME)</li>
+                                        <li><span class="score-range he">61-75:</span> High Engagement (HE)</li>
+                                        <li><span class="score-range disqualified">&lt;60:</span> Disqualified</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="detail-card">
+                            <div class="domain-header">
+                                <h3>SW Infra Domain</h3>
+                            </div>
+                            
+                            <div class="detail-content">
+                                <div class="supplier-assessment">
+                                    <div class="assessment-header">
+                                        <h4>HQ NC DB1 Assessment</h4>
+                                        <div class="assessment-date">2025-10-10</div>
+                                    </div>
+                                    
+                                    <div class="platform-section">
+                                        <div class="section-title platform-title">
+                                            <span class="section-icon">🖥️</span>
+                                            <strong>RF Test Software Platform</strong>
+                                        </div>
+                                        <div class="platform-details">
+                                            <div class="platform-item">
+                                                <span class="platform-label">Platform:</span>
+                                                <span class="platform-value">I-Far testing platform supporting all test stations</span>
+                                            </div>
+                                            <div class="platform-item">
+                                                <span class="platform-label">Chipset Support:</span>
+                                                <span class="platform-value">Multiple chipsets including MTK, Qualcomm, and other TWS chipsets</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="assessment-section">
+                                        <div class="section-title capabilities-title">
+                                            <span class="section-icon">✓</span>
+                                            <strong>Capabilities</strong>
+                                        </div>
+                                        <ul class="assessment-list capabilities-list">
+                                            <li>Comprehensive test station support through I-Far platform</li>
+                                            <li>Multi-chipset compatibility for various TWS solutions</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div class="assessment-section">
+                                        <div class="section-title critical-gaps-title">
+                                            <span class="section-icon">🚨</span>
+                                            <strong>Critical Gaps</strong>
+                                        </div>
+                                        <ul class="assessment-list critical-gaps-list">
+                                            <li>Lacks RF signaling test software development experience</li>
+                                            <li>I-Far test platform only supports Non-Signaling tests</li>
+                                            <li>Presto RF test instrument not included in current test platform (needs upgrade)</li>
+                                            <li>I-Far platform does not support BT Tx calibration (needs upgrade)</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div class="supplier-assessment">
+                                    <div class="assessment-header">
+                                        <h4>GGEC Assessment</h4>
+                                        <div class="assessment-date">2025-10-15</div>
+                                    </div>
+                                    
+                                    <div class="assessment-section">
+                                        <div class="section-title limitations-title">
+                                            <span class="section-icon">⚠</span>
+                                            <strong>Resource Limitations</strong>
+                                        </div>
+                                        <ul class="assessment-list limitations-list">
+                                            <li>Lacks resources to support factory line test tool development</li>
+                                            <li>Only one software engineer supports all line test stations' tools and MES integration</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div class="assessment-section">
+                                        <div class="section-title gaps-title">
+                                            <span class="section-icon">❌</span>
+                                            <strong>Development Capability Gaps</strong>
+                                        </div>
+                                        <ul class="assessment-list gaps-list">
+                                            <li>Lacks RF and Audio test tool development experience</li>
+                                            <li>90% of production line test tools outsourced to third-party vendors</li>
+                                            <li>Heavy reliance on external vendors for critical testing infrastructure</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div class="assessment-section">
+                                        <div class="section-title impact-title">
+                                            <span class="section-icon">📈</span>
+                                            <strong>Impact Assessment</strong>
+                                        </div>
+                                        <ul class="assessment-list impact-list">
+                                            <li>Limited internal development capability may impact customization and rapid response to testing requirements</li>
+                                            <li>Single point of failure with only one dedicated software engineer</li>
+                                            <li>Vendor dependency may affect cost control and timeline flexibility</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Back to Top Button -->
+    <button id="backToTop" class="back-to-top" onclick="scrollToTop()" title="回到顶部">
+        <span class="back-to-top-icon">⬆</span>
+    </button>
+
+    <script src="script.js"></script>
+</body>
+</html>
 
